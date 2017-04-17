@@ -7,6 +7,15 @@
 public class Evento {
     private TipoEvento tipo;
     private Mensaje mensaje;
+    private int tiempoEvento; // Tiempo de inicio del evento
+
+    public Evento(){
+
+    }
+
+    public int getTiempoEvento() {
+        return tiempoEvento;
+    }
 }
 
 /**
