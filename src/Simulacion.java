@@ -20,6 +20,8 @@ public class Simulacion {
     private Estadisticas estadisticas; // Instancia del objeto para estadísticas
     private GeneradorRandom generadorRandom; // Instancia del objeto generador de números aleatorios
     private PriorityQueue<Evento> colaEventos; // Cola de eventos del sistema
+    private int numeroMensajesRechazados;
+    private int numeroMensajesFinalizados;
 
     private Deque<Mensaje> computadora1; // Cola de mensajes de la computadora 1
     private Deque<Mensaje> computadora2; // Cola de mensajes de la computadora 2
@@ -74,11 +76,14 @@ public class Simulacion {
 
         if(random > 0.5) {
             tipoEvento = 0; // Computadora 2
+            mensaje.setComputadoraInicio(2);
             tiempoEvento = generadorRandom.normal(15,1); // generamos el tiempo de llegada para la computadora 2
         } else {
             tipoEvento = 1; // Computadora 3
+            mensaje.setComputadoraInicio(3);
             tiempoEvento = generadorRandom.distribucionComputadora3(); // generamos el tiempo de llegada para la computadora 3
         }
+
         mensaje.setLlegadaSistema(clock + tiempoEvento);
         Evento evento = new Evento(mensaje, tiempoEvento, tipoEvento);
         colaEventos.add(evento);
@@ -93,15 +98,18 @@ public class Simulacion {
         int tipoEvento;
         if(random > 0.5) {
             tipoEvento = 0; // Computadora 2
+            mensaje.setComputadoraInicio(2);
         } else {
             tipoEvento = 1; // Computadora 3
+            mensaje.setComputadoraInicio(3);
         }
         mensaje.setLlegadaSistema(0);
+
         Evento primerEvento = new Evento(mensaje, 0, tipoEvento);
         colaEventos.add(primerEvento);
 
         for(int sim = 0; sim < numSimulaciones; sim++) {
-            while(clock < tiempoSimulacion) {
+            while(clock < tiempoSimulacion * 60) {
                 Evento eventoActual = colaEventos.poll();
 
                 clock = eventoActual.getTiempoEvento();
@@ -123,18 +131,22 @@ public class Simulacion {
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
+                            eventoActual.getMensaje().setTiempoInicioCola(clock);
                             computadora2.add(eventoActual.getMensaje());
                         }
                         break;
                     case 1: // Llegada a la Computadora 3
+
                         if(procesadoresLibres_Computadora3 != 0) {
                             procesadoresLibres_Computadora3--; // ocupamos el procesador 1 de C3
                             tipoEvento = 4; // Tipo de evento: C3 Libera P1
                             tiempoServicio = generadorRandom.exponencial(4);
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
+
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
+                            eventoActual.getMensaje().setTiempoInicioCola(clock);
                             computadora3.add(eventoActual.getMensaje());
                         }
 
@@ -142,11 +154,12 @@ public class Simulacion {
                     case 2: // C2 lbera a P1
                         if(!computadora2.isEmpty()) {
                             mensaje = computadora2.poll();
+                            mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 2; // Tipo de evento: C2 Libera P1
                             tiempoServicio = generadorRandom.uniforme(12,25);
 
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
-                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
+                            proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
                             procesadoresLibres_Computadora2++;
@@ -158,11 +171,12 @@ public class Simulacion {
                     case 3: // C2 libera a P2
                         if(!computadora2.isEmpty()) {
                             mensaje = computadora2.poll();
+                            mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 3; // Tipo de evento: C2 Libera P2
                             tiempoServicio = generadorRandom.uniforme(12,25);
 
                             // Generamos el próximo evento dependiendo del procesador que se va a liberar, y lo agregams a la cola de eventos
-                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
+                            proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
                             procesadoresLibres_Computadora2++;
@@ -175,42 +189,80 @@ public class Simulacion {
                     case 4: // C3 Libera a P1
                         if(!computadora3.isEmpty()) {
                             mensaje = computadora3.poll();
+                            mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 4; // Tipo de evento: C3 Libera P1
                             tiempoServicio = generadorRandom.exponencial(4);
 
-                            // Generamos el próximo delprocesador que se va a liberar, y lo agregams a la cola de eventos
-                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
+                            // Generamos el próximo del procesador que se va a liberar, y lo agregams a la cola de eventos
+                            proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
                             procesadoresLibres_Computadora2++;
                         }
 
-                        proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 6);
-                        colaEventos.add(proximoEvento);
+                        if (generadorRandom.getNextDouble() * 100 <= 80) {
+                            /**
+                             * Actualizar estadístcas
+                             */
+                            numeroMensajesRechazados++;
+                        } else {
+                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 5);
+                            colaEventos.add(proximoEvento);
+                        }
 
                         break;
-                    case 5: // C1 recibe mensaje de C2
+                    case 5: // C1 recibe mensaje de C2 o de C3
                         if(procesadoresLibres_Computadora1 != 0) {
                             procesadoresLibres_Computadora1--; // ocupamos el procesador 1 de C1
-                            tipoEvento = 7; // Tipo de evento: C1 Libera P1
+                            tipoEvento = 6; // Tipo de evento: C1 Libera P1
                             tiempoServicio = generadorRandom.exponencial(10);
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
-                            computadora3.add(eventoActual.getMensaje());
+                            eventoActual.getMensaje().setTiempoInicioCola(clock);
+                            computadora1.add(eventoActual.getMensaje());
                         }
 
                         break;
-                    case 6: // C1 recibe mensaje de C3
-                        break;
-                    case 7: // C1 libra a P1
-                        break;
-                    case 8:
-                        break;
-                    case 9:
+                    case 6: // C1 libera P1
+                        if(!computadora1.isEmpty()) {
+                            mensaje = computadora1.poll();
+                            mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
+                            tipoEvento = 6; // Tipo de evento: C1 Libera P1
+                            tiempoServicio = generadorRandom.exponencial(10);
+
+                            // Generamos el próximo del procesador que se va a liberar, y lo agregams a la cola de eventos
+                            proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
+                            colaEventos.add(proximoEvento);
+                        } else {
+                            procesadoresLibres_Computadora1++;
+                        }
+
+                        if(eventoActual.getMensaje().getComputadoraInicio() == 2) {
+                            if (generadorRandom.getNextDouble() * 100 <= 20) {
+                                proximoEvento = new Evento(eventoActual.getMensaje(), clock + 3, 0);
+                                colaEventos.add(proximoEvento);
+                            } else {
+                                /**
+                                 * Actualizamos estadísticas
+                                 */
+                                numeroMensajesFinalizados++;
+                            }
+                        } else {
+                            if (generadorRandom.getNextDouble() * 100 <= 50) {
+                                proximoEvento = new Evento(eventoActual.getMensaje(), clock + 3, 1);
+                                colaEventos.add(proximoEvento);
+                            } else {
+                                /**
+                                 * Actualizamos estadísticas
+                                 */
+                                numeroMensajesFinalizados++;
+                            }
+                        }
                         break;
                 }
+                this.generarLlegada(); // Generamos ls siguiente llgada al sistema
             }
         }
     }
