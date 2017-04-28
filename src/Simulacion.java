@@ -22,6 +22,8 @@ public class Simulacion {
     private PriorityQueue<Evento> colaEventos; // Cola de eventos del sistema
     private int numeroMensajesRechazados;
     private int numeroMensajesFinalizados;
+    private int cantidadMensajes;
+    private int cantidadVecesDevuelto;
 
     private Deque<Mensaje> computadora1; // Cola de mensajes de la computadora 1
     private Deque<Mensaje> computadora2; // Cola de mensajes de la computadora 2
@@ -73,6 +75,7 @@ public class Simulacion {
         double random = generadorRandom.getNextDouble();
         int tipoEvento;
         double tiempoEvento;
+        cantidadMensajes++;
 
         if(random > 0.5) {
             tipoEvento = 0; // Computadora 2
@@ -104,6 +107,7 @@ public class Simulacion {
             mensaje.setComputadoraInicio(3);
         }
         mensaje.setLlegadaSistema(0);
+        cantidadMensajes++;
 
         Evento primerEvento = new Evento(mensaje, 0, tipoEvento);
         colaEventos.add(primerEvento);
@@ -119,13 +123,17 @@ public class Simulacion {
                         tiempoServicio = 0;
                         if(procesadoresLibres_Computadora2 != 0) {
                             if(procesadoresLibres_Computadora2 == 2) {
-                                procesadoresLibres_Computadora2--; // ocupamos el procesador 2 de C3
+                                procesadoresLibres_Computadora2--; // ocupamos el procesador 2 de C2
                                 tipoEvento = 3; // Tipo de evento: C2 Libera P2
                                 tiempoServicio = generadorRandom.uniforme(12,25);
+                                eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
+                                estadisticas.sumarTiempoEnP2_C2(tiempoServicio);
                             } else if (procesadoresLibres_Computadora2 == 1){
-                                procesadoresLibres_Computadora2--; // ocupamos el procesador 1 de C3
+                                procesadoresLibres_Computadora2--; // ocupamos el procesador 1 de C2
                                 tipoEvento = 2; // Tipo de evento: C2 Libera P1
                                 tiempoServicio = generadorRandom.uniforme(12,25);
+                                eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
+                                estadisticas.sumarTiempoEnP1_C2(tiempoServicio);
                             }
                             // Generamos el próximo evento dependiendo del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
@@ -141,6 +149,8 @@ public class Simulacion {
                             procesadoresLibres_Computadora3--; // ocupamos el procesador 1 de C3
                             tipoEvento = 4; // Tipo de evento: C3 Libera P1
                             tiempoServicio = generadorRandom.exponencial(4);
+                            eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP1_C3(tiempoServicio);
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
 
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
@@ -157,6 +167,8 @@ public class Simulacion {
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 2; // Tipo de evento: C2 Libera P1
                             tiempoServicio = generadorRandom.uniforme(12,25);
+                            mensaje.sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP1_C2(tiempoServicio);
 
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
@@ -174,6 +186,8 @@ public class Simulacion {
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 3; // Tipo de evento: C2 Libera P2
                             tiempoServicio = generadorRandom.uniforme(12,25);
+                            mensaje.sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP2_C2(tiempoServicio);
 
                             // Generamos el próximo evento dependiendo del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
@@ -192,6 +206,8 @@ public class Simulacion {
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 4; // Tipo de evento: C3 Libera P1
                             tiempoServicio = generadorRandom.exponencial(4);
+                            mensaje.sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP1_C3(tiempoServicio);
 
                             // Generamos el próximo del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
@@ -205,7 +221,14 @@ public class Simulacion {
                              * Actualizar estadístcas
                              */
                             numeroMensajesRechazados++;
+                            estadisticas.sumarTiempoEnSistema(clock - eventoActual.getMensaje().getLlegadaSistema());
+                            estadisticas.sumarTiempoEnCola(eventoActual.getMensaje().getTiempoEnCola());
+                            estadisticas.sumarTiempoEnTransmision(eventoActual.getMensaje().getTiempoTansmision());
+                            estadisticas.sumarTiempoTotalProcesamiento(eventoActual.getMensaje().getTiempoProcesamiento());
+                            estadisticas.sumarTiempoProcesamientoRechazados(eventoActual.getMensaje().getTiempoProcesamiento());
+
                         } else {
+                            eventoActual.getMensaje().sumarTiempoTansmision(20);
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 5);
                             colaEventos.add(proximoEvento);
                         }
@@ -216,6 +239,9 @@ public class Simulacion {
                             procesadoresLibres_Computadora1--; // ocupamos el procesador 1 de C1
                             tipoEvento = 6; // Tipo de evento: C1 Libera P1
                             tiempoServicio = generadorRandom.exponencial(10);
+                            eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
+
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
@@ -231,6 +257,8 @@ public class Simulacion {
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 6; // Tipo de evento: C1 Libera P1
                             tiempoServicio = generadorRandom.exponencial(10);
+                            mensaje.sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
 
                             // Generamos el próximo del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
@@ -241,22 +269,34 @@ public class Simulacion {
 
                         if(eventoActual.getMensaje().getComputadoraInicio() == 2) {
                             if (generadorRandom.getNextDouble() * 100 <= 20) {
+                                cantidadVecesDevuelto++;
+                                eventoActual.getMensaje().sumarTiempoTansmision(3);
                                 proximoEvento = new Evento(eventoActual.getMensaje(), clock + 3, 0);
                                 colaEventos.add(proximoEvento);
                             } else {
                                 /**
                                  * Actualizamos estadísticas
                                  */
+                                estadisticas.sumarTiempoEnSistema(clock - eventoActual.getMensaje().getLlegadaSistema());
+                                estadisticas.sumarTiempoEnCola(eventoActual.getMensaje().getTiempoEnCola());
+                                estadisticas.sumarTiempoEnTransmision(eventoActual.getMensaje().getTiempoTansmision());
+                                estadisticas.sumarTiempoTotalProcesamiento(eventoActual.getMensaje().getTiempoProcesamiento());
                                 numeroMensajesFinalizados++;
                             }
                         } else {
                             if (generadorRandom.getNextDouble() * 100 <= 50) {
+                                cantidadVecesDevuelto++;
+                                eventoActual.getMensaje().sumarTiempoTansmision(3);
                                 proximoEvento = new Evento(eventoActual.getMensaje(), clock + 3, 1);
                                 colaEventos.add(proximoEvento);
                             } else {
                                 /**
                                  * Actualizamos estadísticas
                                  */
+                                estadisticas.sumarTiempoEnSistema(clock - eventoActual.getMensaje().getLlegadaSistema());
+                                estadisticas.sumarTiempoEnCola(eventoActual.getMensaje().getTiempoEnCola());
+                                estadisticas.sumarTiempoEnTransmision(eventoActual.getMensaje().getTiempoTansmision());
+                                estadisticas.sumarTiempoTotalProcesamiento(eventoActual.getMensaje().getTiempoProcesamiento());
                                 numeroMensajesFinalizados++;
                             }
                         }
