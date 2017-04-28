@@ -13,6 +13,10 @@ public class GeneradorRandom {
         random = new Random();
     }
 
+    public double getNextDouble() {
+        return random.nextDouble();
+    }
+
     public double uniforme(double a, double b) {
         return a + (b-a) * random.nextDouble();
     }
@@ -32,6 +36,6 @@ public class GeneradorRandom {
     }
 
     public double distribucionComputadora3() {
-        return 0.6;
+        return Math.sqrt(48*this.getNextDouble() + 16);
     }
 }
