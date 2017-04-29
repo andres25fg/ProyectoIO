@@ -1,7 +1,4 @@
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * Clase Simulación
@@ -14,10 +11,7 @@ public class Simulacion {
     private int tiempoSimulacion; // Tiempo en minutos de cada simulación
     private double clock; // Reloj del sistema
     private Interfaz interfaz; // Objeto de la clase interfaz
-    //private Computadora computadora1; // Instancia de la Computadora No. 1
-    //private Computadora computadora2; // Instancia de la Computadora No. 2
-    // private Computadora computadora3; // Instancia de la Computadora No. 3
-    private Estadisticas estadisticas; // Instancia del objeto para estadísticas
+    private ArrayList<Estadisticas> colaEstadisticas; // Cola con las instancias de estadisticas de las n simulaciones
     private GeneradorRandom generadorRandom; // Instancia del objeto generador de números aleatorios
     private PriorityQueue<Evento> colaEventos; // Cola de eventos del sistema
     private int numeroMensajesRechazados;
@@ -44,7 +38,6 @@ public class Simulacion {
         this.setClock(0); // Inicializamos el reloj en 0
 
         // Creamos las intancias de los objetos que se van a requerir para la simulación
-        estadisticas = new Estadisticas();
         generadorRandom = new GeneradorRandom();
         computadora1 = new ArrayDeque<Mensaje>();
         computadora2 = new ArrayDeque<Mensaje>();
@@ -113,6 +106,7 @@ public class Simulacion {
         colaEventos.add(primerEvento);
 
         for(int sim = 0; sim < numSimulaciones; sim++) {
+            Estadisticas estadisticas = new Estadisticas(); // Instancia del objeto para estadísticas
             while(clock < tiempoSimulacion * 60) {
                 Evento eventoActual = colaEventos.poll();
 
@@ -304,7 +298,124 @@ public class Simulacion {
                 }
                 this.generarLlegada(); // Generamos ls siguiente llgada al sistema
             }
+            /**
+             * Mostrar estadisticas por simulación
+             */
+            estadisticas.hacerEstadisticas(clock, numeroMensajesRechazados, cantidadMensajes, cantidadVecesDevuelto);
+            colaEstadisticas.add(estadisticas);
         }
+        /**
+         * Estadísticas globales de las n simulaciones
+         */
+        double porcetanjeP1_C1 = 0;
+        double porcetanjeP1_C2 = 0;
+        double porcetanjeP2_C2 = 0;
+        double porcetanjeP1_C3 = 0;
+        double porcentajeTiempoRechazo = 0;
+        double porcentajeMensajesRechazados = 0;
+        double tiempo_W = 0;
+        double promedioMensajeDevuelto = 0;
+        double tiempo_WQ = 0;
+        double tiempoTransmision = 0;
+        double tiempo_WS = 0;
+
+        for(int i = 0; i < numSimulaciones; i++)  {
+            Estadisticas estadisticas = colaEstadisticas.get(i);
+
+            porcetanjeP1_C1 += estadisticas.getPorcetanjeP1_C1();
+            porcetanjeP1_C2 += estadisticas.getPorcetanjeP1_C2();
+            porcetanjeP2_C2 += estadisticas.getPorcetanjeP2_C2();
+            porcetanjeP1_C3 += estadisticas.getPorcetanjeP1_C3();
+            porcentajeTiempoRechazo += estadisticas.getPorcentajeTiempoRechazo();
+            porcentajeMensajesRechazados += estadisticas.getPorcentajeMensajesRechazados();
+            tiempo_W += estadisticas.getTiempo_W();
+            promedioMensajeDevuelto += estadisticas.getPromedioMensajeDevuelto();
+            tiempo_WQ += estadisticas.getTiempo_WQ();
+            tiempoTransmision += estadisticas.getTiempoEnTransmision();
+            tiempo_WS += estadisticas.getPorcentajeTiempo_WS();
+        }
+
+        porcetanjeP1_C1 = porcetanjeP1_C1 / numSimulaciones;
+        porcetanjeP1_C2 = porcetanjeP1_C2 / numSimulaciones;
+        porcetanjeP2_C2 = porcetanjeP2_C2 / numSimulaciones;
+        porcetanjeP1_C3 = porcetanjeP1_C3 / numSimulaciones;
+        porcentajeTiempoRechazo = porcentajeTiempoRechazo / numSimulaciones;
+        porcentajeMensajesRechazados = porcentajeMensajesRechazados / numSimulaciones;
+        tiempo_W = tiempo_W / numSimulaciones;
+        promedioMensajeDevuelto = promedioMensajeDevuelto / numSimulaciones;
+        tiempo_WQ = tiempo_WQ / numSimulaciones;
+        tiempoTransmision = tiempoTransmision / numSimulaciones;
+        tiempo_WS = tiempo_WS / numSimulaciones;
+
+        /**
+         * Estadísticas: Intervalo de confianza
+         */
+
+        double intervalo_porcetanjeP1_C1 = 0;
+        double intervalo_porcetanjeP1_C2 = 0;
+        double intervalo_porcetanjeP2_C2 = 0;
+        double intervalo_porcetanjeP1_C3 = 0;
+        double intervalo_porcentajeTiempoRechazo = 0;
+        double intervalo_porcentajeMensajesRechazados = 0;
+        double intervalo_tiempo_W = 0;
+        double intervalo_promedioMensajeDevuelto = 0;
+        double intervalo_tiempo_WQ = 0;
+        double intervalo_tiempoTransmision = 0;
+        double intervalo_tiempo_WS = 0;
+
+        for(int i = 0; i < numSimulaciones; i++)  {
+            Estadisticas estadisticas = colaEstadisticas.get(i);
+
+            intervalo_porcetanjeP1_C1 += estadisticas.getPorcetanjeP1_C1() - porcetanjeP1_C1;
+            intervalo_porcetanjeP1_C2 += estadisticas.getPorcetanjeP1_C2() - porcetanjeP1_C2;
+            intervalo_porcetanjeP2_C2 += estadisticas.getPorcetanjeP2_C2() - porcetanjeP2_C2;
+            intervalo_porcetanjeP1_C3 += estadisticas.getPorcetanjeP1_C3() - porcetanjeP1_C3;
+            intervalo_porcentajeTiempoRechazo += estadisticas.getPorcentajeTiempoRechazo() - porcentajeTiempoRechazo;
+            intervalo_porcentajeMensajesRechazados += estadisticas.getPorcentajeMensajesRechazados() - porcentajeMensajesRechazados;
+            intervalo_tiempo_W += estadisticas.getTiempo_W() - tiempo_W;
+            intervalo_promedioMensajeDevuelto += estadisticas.getPromedioMensajeDevuelto() - promedioMensajeDevuelto;
+            intervalo_tiempo_WQ += estadisticas.getTiempo_WQ() - tiempo_WQ;
+            intervalo_tiempoTransmision += estadisticas.getTiempoEnTransmision() - tiempoTransmision;
+            intervalo_tiempo_WS += estadisticas.getPorcentajeTiempo_WS() - tiempo_WS;
+        }
+        intervalo_porcetanjeP1_C1 = Math.pow(intervalo_porcetanjeP1_C1, 2)/numSimulaciones-1;
+        intervalo_porcetanjeP1_C1 = 1.96 * Math.pow(intervalo_porcetanjeP1_C1/numSimulaciones, 1/2);
+
+        intervalo_porcetanjeP1_C2 = Math.pow(intervalo_porcetanjeP1_C2, 2)/numSimulaciones-1;
+        intervalo_porcetanjeP1_C2 = 1.96 * Math.pow(intervalo_porcetanjeP1_C2/numSimulaciones, 1/2);
+
+        intervalo_porcetanjeP2_C2 = Math.pow(intervalo_porcetanjeP2_C2, 2)/numSimulaciones-1;
+        intervalo_porcetanjeP2_C2 = 1.96 * Math.pow(intervalo_porcetanjeP2_C2/numSimulaciones, 1/2);
+
+        intervalo_porcetanjeP1_C3 = Math.pow(intervalo_porcetanjeP1_C3, 2)/numSimulaciones-1;
+        intervalo_porcetanjeP1_C3 = 1.96 * Math.pow(intervalo_porcetanjeP1_C3/numSimulaciones, 1/2);
+
+        intervalo_porcentajeTiempoRechazo = Math.pow(intervalo_porcentajeTiempoRechazo, 2)/numSimulaciones-1;
+        intervalo_porcentajeTiempoRechazo = 1.96 * Math.pow(intervalo_porcentajeTiempoRechazo/numSimulaciones, 1/2);
+
+        intervalo_porcentajeMensajesRechazados = Math.pow(intervalo_porcentajeMensajesRechazados, 2)/numSimulaciones-1;
+        intervalo_porcentajeMensajesRechazados = 1.96 * Math.pow(intervalo_porcentajeMensajesRechazados/numSimulaciones, 1/2);
+
+        intervalo_tiempo_W = Math.pow(intervalo_tiempo_W, 2)/numSimulaciones-1;
+        intervalo_tiempo_W = 1.96 * Math.pow(intervalo_tiempo_W/numSimulaciones, 1/2);
+
+        intervalo_promedioMensajeDevuelto = Math.pow(intervalo_promedioMensajeDevuelto, 2)/numSimulaciones-1;
+        intervalo_promedioMensajeDevuelto = 1.96 * Math.pow(intervalo_promedioMensajeDevuelto/numSimulaciones, 1/2);
+
+        intervalo_tiempo_WQ = Math.pow(intervalo_tiempo_WQ, 2)/numSimulaciones-1;
+        intervalo_tiempo_WQ = 1.96 * Math.pow(intervalo_tiempo_WQ/numSimulaciones, 1/2);
+
+        intervalo_tiempoTransmision = Math.pow(intervalo_tiempoTransmision, 2)/numSimulaciones-1;
+        intervalo_tiempoTransmision = 1.96 * Math.pow(intervalo_tiempoTransmision/numSimulaciones, 1/2);
+
+        intervalo_tiempo_WS = Math.pow(intervalo_tiempo_WS, 2)/numSimulaciones-1;
+        intervalo_tiempo_WS = 1.96 * Math.pow(intervalo_tiempo_WS/numSimulaciones, 1/2);
+
+    }
+
+    public double round(double number){
+        number = Math.round(number*1000);
+        return number/1000;
     }
 
     public void setNumSimulaciones(int numSimulaciones) {
