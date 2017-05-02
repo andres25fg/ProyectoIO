@@ -101,33 +101,47 @@ public class Simulacion {
      * Método que contiene la lógica principal de la simulación y el proceso de eventos
      */
     public void correrSimulacion() {
-        // Generamos los datos neecesarios para tener el primer evento y mensaje del sistema
-        double tiempoServicio;
-        Evento proximoEvento;
-
-        double random = generadorRandom.getNextDouble();
-        Mensaje mensaje = new Mensaje();
-        int tipoEvento;
-        if(random > 0.5) {
-            tipoEvento = 0; // Computadora 2
-            mensaje.setComputadoraInicio(2);
-        } else {
-            tipoEvento = 1; // Computadora 3
-            mensaje.setComputadoraInicio(3);
-        }
-        mensaje.setLlegadaSistema(0);
-        cantidadMensajes++;
-
-        Evento primerEvento = new Evento(mensaje, 0, tipoEvento);
-        colaEventos.add(primerEvento);
-        /*
-         * El bloque de código anterior genera la primera llegada al sistema
-         */
-
         // Ciclo que ejecuta el número total de las simulaciones
-        for(int sim = 0; sim < numSimulaciones; sim++) {
-            interfaz.showTextoGUI("Simulación número: " + sim + 1);
+        for(int sim = 0; sim < numSimulaciones; sim ++) {
+            interfaz.showTextoGUI("Simulación número: " + (sim + 1));
+            interfaz.showNumeroSimulacion(sim + 1);
+
+            numeroMensajesFinalizados = 0;
+            numeroMensajesRechazados = 0;
+            cantidadMensajes = 0;
+            cantidadVecesDevuelto = 0;
+            clock = 0;
+
+            // Vaciamos las colas
+            colaEventos.clear(); computadora1.clear(); computadora2.clear(); computadora3.clear();
+            // Reseteamos algunos componentes de la interfaz
+            interfaz.resetSimulacion();
+
             Estadisticas estadisticas = new Estadisticas(); // Instancia del objeto para estadísticas
+
+            // Generamos los datos neecesarios para tener el primer evento y mensaje del sistema
+            double tiempoServicio;
+            Evento proximoEvento;
+
+            double random = generadorRandom.getNextDouble();
+            Mensaje mensaje = new Mensaje();
+            int tipoEvento;
+            if(random > 0.5) {
+                tipoEvento = 0; // Computadora 2
+                mensaje.setComputadoraInicio(2);
+            } else {
+                tipoEvento = 1; // Computadora 3
+                mensaje.setComputadoraInicio(3);
+            }
+            mensaje.setLlegadaSistema(0);
+            cantidadMensajes++;
+            /*
+             * El bloque de código anterior genera la primera llegada al sistema
+             */
+
+            Evento primerEvento = new Evento(mensaje, 0, tipoEvento);
+            colaEventos.add(primerEvento);
+
             // Ciclo que maneja una simulación única. Se detiene hasta alcanzar el tiempo máximo de una simulación
             while(clock < tiempoSimulacion * 60) {
                 Evento eventoActual = colaEventos.poll(); // Sacamos el evento de la cola de eventos
@@ -182,7 +196,7 @@ public class Simulacion {
                         }
 
                         break;
-                    case 2: // Evento: C2 lbera a P1
+                    case 2: // Evento: C2 libera a P1
                         if(!computadora2.isEmpty()) {
                             mensaje = computadora2.poll();
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
@@ -250,15 +264,15 @@ public class Simulacion {
 
                         } else {
                             eventoActual.getMensaje().sumarTiempoTansmision(20);
-                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 5);
+                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 6);
                             colaEventos.add(proximoEvento);
                         }
 
                         break;
-                    case 5: // Evento: C1 recibe mensaje de C2 o de C3
+                    case 5: // Evento: C1 recibe mensaje de C2
                         if(procesadoresLibres_Computadora1 == 1) {
                             procesadoresLibres_Computadora1--; // ocupamos el procesador 1 de C1
-                            tipoEvento = 6; // Tipo de evento: C1 Libera P1
+                            tipoEvento = 7; // Tipo de evento: C1 Libera P1
                             tiempoServicio = generadorRandom.exponencial(10); // Generamos el tiempo de servicio
                             eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
@@ -270,13 +284,30 @@ public class Simulacion {
                             eventoActual.getMensaje().setTiempoInicioCola(clock);
                             computadora1.add(eventoActual.getMensaje());
                         }
-
                         break;
-                    case 6: // Evento: C1 libera P1
+
+                    case 6: // Evento: C1 recibe mensaje de C3
+                        if(procesadoresLibres_Computadora1 == 1) {
+                            procesadoresLibres_Computadora1--; // ocupamos el procesador 1 de C1
+                            tipoEvento = 7; // Tipo de evento: C1 Libera P1
+                            tiempoServicio = generadorRandom.exponencial(10); // Generamos el tiempo de servicio
+                            eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
+                            estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
+
+                            // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
+                            proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
+                            colaEventos.add(proximoEvento);
+                        } else {
+                            eventoActual.getMensaje().setTiempoInicioCola(clock);
+                            computadora1.add(eventoActual.getMensaje());
+                        }
+                        break;
+
+                    case 7: // Evento: C1 libera P1
                         if(!computadora1.isEmpty()) {
                             mensaje = computadora1.poll();
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
-                            tipoEvento = 6; // Tipo de evento: C1 Libera P1
+                            tipoEvento = 7; // Tipo de evento: C1 Libera P1
                             tiempoServicio = generadorRandom.exponencial(10); // Generamos el tiempo de servicio
                             mensaje.sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
@@ -489,7 +520,7 @@ public class Simulacion {
         interfaz.showTextoGUI("Tiempo promedio en el sistema: [" + this.round(tiempo_W - intervalo_tiempo_W) + " , " + this.round(tiempo_W + intervalo_tiempo_W) + "]");
         interfaz.showTextoGUI("Tiempo promedio en cola: [" + this.round(tiempo_WQ - intervalo_tiempo_WQ) + " , " + this.round(tiempo_WQ + intervalo_tiempo_WQ) + "]");
         interfaz.showTextoGUI("Porcentaje de tiempo usado en procesamiento: [" + this.round(tiempo_WS - intervalo_tiempo_WS) + " , " + this.round(tiempo_WS + intervalo_tiempo_WS) + "]");
-
+        interfaz.activarBotonRegreso();
     }
 
     public double round(double number){
