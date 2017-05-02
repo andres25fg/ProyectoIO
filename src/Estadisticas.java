@@ -17,17 +17,17 @@ public class Estadisticas {
     private double tiempoEnTransmision;
 
     // Estadísticas globales por simulación
-    private double porcetanjeP1_C1;
-    private double porcetanjeP1_C2;
-    private double porcetanjeP2_C2;
-    private double porcetanjeP1_C3;
-    private double porcentajeTiempoRechazo;
-    private double porcentajeMensajesRechazados;
-    private double tiempo_W;
-    private double promedioMensajeDevuelto;
-    private double tiempo_WQ;
-    private double tiempoTransmision;
-    private double porcentajeTiempo_WS;
+    private double porcetanjeP1_C1; // Porcentaje de tiempo en P1 de la Computadora 1
+    private double porcetanjeP1_C2; // Porcentaje de tiempo en P1 de la Computadora 2
+    private double porcetanjeP2_C2; // Porcentaje de tiempo en P2 de la Computadora 2
+    private double porcetanjeP1_C3; // Porcentaje de tiempo en P1 de la Computadora 3
+    private double porcentajeTiempoRechazo; // Porcentaje del tiempo usado en mensajes rechazados
+    private double porcentajeMensajesRechazados; // Porcentaje de mensajes rechazados
+    private double tiempo_W; // WS: tiempo promedio de servicio en el sistema
+    private double promedioMensajeDevuelto; // Promedio de mensajes devueltos desde C1
+    private double tiempo_WQ; // Wq: tiempo promedio en cola
+    private double tiempoTransmision; // Tiempo promedio de transmisión entre computadoras
+    private double porcentajeTiempo_WS; // Porcentaje de tiempo usado en servicio
 
     public Estadisticas() {
     }

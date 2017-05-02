@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Clase Simulación
@@ -10,38 +11,45 @@ public class Simulacion {
     private int numSimulaciones; // Cantidad de simulaciones que se van a realizar
     private int tiempoSimulacion; // Tiempo en minutos de cada simulación
     private double clock; // Reloj del sistema
+    private boolean modoLento; // Bandera para saber si se va a correr la simulacion en modo lento
+    private int segundosModoLento; // Cantidad de segundos entre eventos
     private Interfaz interfaz; // Objeto de la clase interfaz
     private ArrayList<Estadisticas> colaEstadisticas; // Cola con las instancias de estadisticas de las n simulaciones
     private GeneradorRandom generadorRandom; // Instancia del objeto generador de números aleatorios
     private PriorityQueue<Evento> colaEventos; // Cola de eventos del sistema
-    private int numeroMensajesRechazados;
-    private int numeroMensajesFinalizados;
-    private int cantidadMensajes;
-    private int cantidadVecesDevuelto;
+    private int numeroMensajesRechazados; // Número total de mensajes rechazados
+    private int numeroMensajesFinalizados; // Número total de mensajes finalizados
+    private int cantidadMensajes; // Cantidad total de mensajes
+    private int cantidadVecesDevuelto; // Cantidad de veces que un mensaje es devuelto
 
     private Deque<Mensaje> computadora1; // Cola de mensajes de la computadora 1
     private Deque<Mensaje> computadora2; // Cola de mensajes de la computadora 2
     private Deque<Mensaje> computadora3; // Cola de mensajes de la computadora 3
 
-    private int procesadoresLibres_Computadora1;
-    private int procesadoresLibres_Computadora2;
-    private int procesadoresLibres_Computadora3;
+    private int procesadoresLibres_Computadora1; // Cantidad de procesadores libres de la computadora 1
+    private int procesadoresLibres_Computadora2; // Cantidad de procesadores libres de la computadora 2
+    private int procesadoresLibres_Computadora3; // Cantidad de procesadores libres de la computadora 3
 
     /**
      * Constructor
      * @param numSimulaciones cantidad de simulaciones que se vean a realizar
      * @param tiempoSimulacion tiempo en minutos de cada simulación
      */
-    public Simulacion(int numSimulaciones, int tiempoSimulacion) {
+    public Simulacion(int numSimulaciones, int tiempoSimulacion, boolean modoLento, int segundosModoLento, Interfaz gui) {
+        interfaz = gui; // Referencia del objeto interfaz para la comunicación
         this.setNumSimulaciones(numSimulaciones); // Se inicializan los parámetros de la simulación
         this.setTiempoSimulacion(tiempoSimulacion);
         this.setClock(0); // Inicializamos el reloj en 0
+        this.setModoLento(modoLento);
+        if(modoLento) {
+            this.setSegundosModoLento(segundosModoLento);
+        }
 
         // Creamos las intancias de los objetos que se van a requerir para la simulación
         generadorRandom = new GeneradorRandom();
-        computadora1 = new ArrayDeque<Mensaje>();
-        computadora2 = new ArrayDeque<Mensaje>();
-        computadora3 = new ArrayDeque<Mensaje>();
+        computadora1 = new ArrayDeque<Mensaje>(); // Cola de mensajes de la computadora 1
+        computadora2 = new ArrayDeque<Mensaje>(); // Cola de mensajes de la computadora 2
+        computadora3 = new ArrayDeque<Mensaje>(); // Cola de mensajes de la computadora 3
 
         procesadoresLibres_Computadora1 = 1;
         procesadoresLibres_Computadora2 = 2;
@@ -49,6 +57,7 @@ public class Simulacion {
 
         Comparator<Evento> comparator = new ComparadorEvento(); // Se crea el comparador de la cola de prioridad
         colaEventos = new PriorityQueue<Evento>(comparator); // Se inicializa la cola de prioridad
+        colaEstadisticas = new ArrayList<Estadisticas>(); // Se inicializa la cola de estadísticas
 
         // La lógica de la simulación se corre en otro hilo diferente para poder correr la simulación y refrescar la interfaz simultáneamente
         (new Thread() {
@@ -63,6 +72,9 @@ public class Simulacion {
 
     }
 
+    /**
+     * Método para generar un llegada de un mensaje al sistema
+     */
     public void generarLlegada() {
         Mensaje mensaje = new Mensaje();
         double random = generadorRandom.getNextDouble();
@@ -70,23 +82,27 @@ public class Simulacion {
         double tiempoEvento;
         cantidadMensajes++;
 
-        if(random > 0.5) {
-            tipoEvento = 0; // Computadora 2
+        if(random > 0.5) { // Asignamos aleatoriamente a cual computadora va llegar el mensaje
+            tipoEvento = 0; // El mensaje va a llegar a la Computadora 2
             mensaje.setComputadoraInicio(2);
             tiempoEvento = generadorRandom.normal(15,1); // generamos el tiempo de llegada para la computadora 2
         } else {
-            tipoEvento = 1; // Computadora 3
+            tipoEvento = 1; // El mensaje va a llegar a la Computadora 3
             mensaje.setComputadoraInicio(3);
             tiempoEvento = generadorRandom.distribucionComputadora3(); // generamos el tiempo de llegada para la computadora 3
         }
 
         mensaje.setLlegadaSistema(clock + tiempoEvento);
-        Evento evento = new Evento(mensaje, tiempoEvento, tipoEvento);
-        colaEventos.add(evento);
+        Evento evento = new Evento(mensaje, clock + tiempoEvento, tipoEvento); // Asociamos el mensaje al evento
+        colaEventos.add(evento); // Agregamos el evento a la cola de eventos del sistema
     }
 
+    /**
+     * Método que contiene la lógica principal de la simulación y el proceso de eventos
+     */
     public void correrSimulacion() {
-        double tiempoServicio = 0;
+        // Generamos los datos neecesarios para tener el primer evento y mensaje del sistema
+        double tiempoServicio;
         Evento proximoEvento;
 
         double random = generadorRandom.getNextDouble();
@@ -104,30 +120,42 @@ public class Simulacion {
 
         Evento primerEvento = new Evento(mensaje, 0, tipoEvento);
         colaEventos.add(primerEvento);
+        /*
+         * El bloque de código anterior genera la primera llegada al sistema
+         */
 
+        // Ciclo que ejecuta el número total de las simulaciones
         for(int sim = 0; sim < numSimulaciones; sim++) {
+            interfaz.showTextoGUI("Simulación número: " + sim + 1);
             Estadisticas estadisticas = new Estadisticas(); // Instancia del objeto para estadísticas
+            // Ciclo que maneja una simulación única. Se detiene hasta alcanzar el tiempo máximo de una simulación
             while(clock < tiempoSimulacion * 60) {
-                Evento eventoActual = colaEventos.poll();
+                Evento eventoActual = colaEventos.poll(); // Sacamos el evento de la cola de eventos
 
                 clock = eventoActual.getTiempoEvento();
+                // Actualizamos el reloj al momento del evento actual, y lo actualizamos en la interfaz
+                if(modoLento) {
+                    interfaz.showTextoGUI("Reloj: " + round(clock));
+                }
+                interfaz.showClock(round(clock));
+                interfaz.showEventoActual(eventoActual.getTipoEvento()); // Actualizamos el evento actual e la simulación
 
                 switch (eventoActual.getTipoEvento()){
-                    case 0: // Llegada a Computadora 2
+                    case 0: // Evento: Llegada a Computadora 2
                         tiempoServicio = 0;
-                        if(procesadoresLibres_Computadora2 != 0) {
+                        if(procesadoresLibres_Computadora2 != 0) { // revisamos si hay procesadores libres
                             if(procesadoresLibres_Computadora2 == 2) {
                                 procesadoresLibres_Computadora2--; // ocupamos el procesador 2 de C2
                                 tipoEvento = 3; // Tipo de evento: C2 Libera P2
-                                tiempoServicio = generadorRandom.uniforme(12,25);
-                                eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
-                                estadisticas.sumarTiempoEnP2_C2(tiempoServicio);
+                                tiempoServicio = generadorRandom.uniforme(12,25); // Generamos el tiempo de servicio
+                                eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio); // Sumamos el total de tiempo de servicio del mensaje
+                                estadisticas.sumarTiempoEnP2_C2(tiempoServicio); // Sumamos al total de tiempo de servicio de las estadísticas
                             } else if (procesadoresLibres_Computadora2 == 1){
                                 procesadoresLibres_Computadora2--; // ocupamos el procesador 1 de C2
                                 tipoEvento = 2; // Tipo de evento: C2 Libera P1
-                                tiempoServicio = generadorRandom.uniforme(12,25);
-                                eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
-                                estadisticas.sumarTiempoEnP1_C2(tiempoServicio);
+                                tiempoServicio = generadorRandom.uniforme(12,25); // Generamos el tiempo de servicio
+                                eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio); // Sumamos el total de tiempo de servicio del mensaje
+                                estadisticas.sumarTiempoEnP1_C2(tiempoServicio); // Sumamos al total de tiempo de servicio de las estadísticas
                             }
                             // Generamos el próximo evento dependiendo del procesador que se va a liberar, y lo agregams a la cola de eventos
                             proximoEvento = new Evento(eventoActual.getMensaje(), clock + tiempoServicio, tipoEvento);
@@ -137,12 +165,11 @@ public class Simulacion {
                             computadora2.add(eventoActual.getMensaje());
                         }
                         break;
-                    case 1: // Llegada a la Computadora 3
-
+                    case 1: // Evento: Llegada a la Computadora 3
                         if(procesadoresLibres_Computadora3 != 0) {
                             procesadoresLibres_Computadora3--; // ocupamos el procesador 1 de C3
                             tipoEvento = 4; // Tipo de evento: C3 Libera P1
-                            tiempoServicio = generadorRandom.exponencial(4);
+                            tiempoServicio = generadorRandom.exponencial(4); // Generamos el tiempo de servicio
                             eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C3(tiempoServicio);
                             // Generamos el próximo evento del procesador que se va a liberar, y lo agregams a la cola de eventos
@@ -155,12 +182,12 @@ public class Simulacion {
                         }
 
                         break;
-                    case 2: // C2 lbera a P1
+                    case 2: // Evento: C2 lbera a P1
                         if(!computadora2.isEmpty()) {
                             mensaje = computadora2.poll();
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 2; // Tipo de evento: C2 Libera P1
-                            tiempoServicio = generadorRandom.uniforme(12,25);
+                            tiempoServicio = generadorRandom.uniforme(12,25); // Generamos el tiempo de servicio
                             mensaje.sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C2(tiempoServicio);
 
@@ -179,7 +206,7 @@ public class Simulacion {
                             mensaje = computadora2.poll();
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 3; // Tipo de evento: C2 Libera P2
-                            tiempoServicio = generadorRandom.uniforme(12,25);
+                            tiempoServicio = generadorRandom.uniforme(12,25); // Generamos el tiempo de servicio
                             mensaje.sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP2_C2(tiempoServicio);
 
@@ -194,12 +221,12 @@ public class Simulacion {
                         colaEventos.add(proximoEvento);
 
                         break;
-                    case 4: // C3 Libera a P1
+                    case 4: // Evento: C3 Libera a P1
                         if(!computadora3.isEmpty()) {
                             mensaje = computadora3.poll();
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 4; // Tipo de evento: C3 Libera P1
-                            tiempoServicio = generadorRandom.exponencial(4);
+                            tiempoServicio = generadorRandom.exponencial(4); // Generamos el tiempo de servicio
                             mensaje.sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C3(tiempoServicio);
 
@@ -207,11 +234,11 @@ public class Simulacion {
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
-                            procesadoresLibres_Computadora2++;
+                            procesadoresLibres_Computadora3++;
                         }
 
                         if (generadorRandom.getNextDouble() * 100 <= 80) {
-                            /**
+                            /*
                              * Actualizar estadístcas
                              */
                             numeroMensajesRechazados++;
@@ -228,11 +255,11 @@ public class Simulacion {
                         }
 
                         break;
-                    case 5: // C1 recibe mensaje de C2 o de C3
-                        if(procesadoresLibres_Computadora1 != 0) {
+                    case 5: // Evento: C1 recibe mensaje de C2 o de C3
+                        if(procesadoresLibres_Computadora1 == 1) {
                             procesadoresLibres_Computadora1--; // ocupamos el procesador 1 de C1
                             tipoEvento = 6; // Tipo de evento: C1 Libera P1
-                            tiempoServicio = generadorRandom.exponencial(10);
+                            tiempoServicio = generadorRandom.exponencial(10); // Generamos el tiempo de servicio
                             eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
 
@@ -245,12 +272,12 @@ public class Simulacion {
                         }
 
                         break;
-                    case 6: // C1 libera P1
+                    case 6: // Evento: C1 libera P1
                         if(!computadora1.isEmpty()) {
                             mensaje = computadora1.poll();
                             mensaje.sumarTiempoEnCola(clock - mensaje.getTiempoInicioCola());
                             tipoEvento = 6; // Tipo de evento: C1 Libera P1
-                            tiempoServicio = generadorRandom.exponencial(10);
+                            tiempoServicio = generadorRandom.exponencial(10); // Generamos el tiempo de servicio
                             mensaje.sumarTiempoProcesamiento(tiempoServicio);
                             estadisticas.sumarTiempoEnP1_C1(tiempoServicio);
 
@@ -268,7 +295,7 @@ public class Simulacion {
                                 proximoEvento = new Evento(eventoActual.getMensaje(), clock + 3, 0);
                                 colaEventos.add(proximoEvento);
                             } else {
-                                /**
+                                /*
                                  * Actualizamos estadísticas
                                  */
                                 estadisticas.sumarTiempoEnSistema(clock - eventoActual.getMensaje().getLlegadaSistema());
@@ -284,7 +311,7 @@ public class Simulacion {
                                 proximoEvento = new Evento(eventoActual.getMensaje(), clock + 3, 1);
                                 colaEventos.add(proximoEvento);
                             } else {
-                                /**
+                                /*
                                  * Actualizamos estadísticas
                                  */
                                 estadisticas.sumarTiempoEnSistema(clock - eventoActual.getMensaje().getLlegadaSistema());
@@ -297,14 +324,38 @@ public class Simulacion {
                         break;
                 }
                 this.generarLlegada(); // Generamos ls siguiente llgada al sistema
+                if(modoLento) { // Revisamos si es necesario hacer la pausa entre eventos
+                    try {
+                        TimeUnit.SECONDS.sleep(segundosModoLento); // El hilo se duerme por el tiempo establecido en modo lento
+                    } catch (InterruptedException e) {
+                        //e.printStackTrace();
+                    }
+                }
+                // Actualizamos los datos en la interfaz
+                interfaz.showInformacionLq(computadora1.size(), computadora2.size(), computadora3.size());
+                interfaz.showInformacionMensajes(numeroMensajesFinalizados, numeroMensajesRechazados);
+                interfaz.showInformacionProcesadores(procesadoresLibres_Computadora1, procesadoresLibres_Computadora2, procesadoresLibres_Computadora3);
+
             }
-            /**
+            /*
              * Mostrar estadisticas por simulación
              */
             estadisticas.hacerEstadisticas(clock, numeroMensajesRechazados, cantidadMensajes, cantidadVecesDevuelto);
+            interfaz.showTextoGUI(" - Estadísticas para la simulación " + sim + 1);
+            interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 1: " + this.round(estadisticas.getPorcetanjeP1_C1()) + " %");
+            interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 2: " + this.round(estadisticas.getPorcetanjeP1_C2()) + " %");
+            interfaz.showTextoGUI("Porcentaje de tiempo en P2 de Computadora 2: " + this.round(estadisticas.getPorcetanjeP2_C2()) + " %");
+            interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 3: " + this.round(estadisticas.getPorcetanjeP1_C3()) + " %");
+            interfaz.showTextoGUI("Porcentaje de tiempo en mensajes rechazados: " + this.round(estadisticas.getPorcentajeTiempoRechazo()) + " %");
+            interfaz.showTextoGUI("Porcentaje de mensajes rechazados: " + this.round(estadisticas.getPorcentajeMensajesRechazados()) + " %");
+            interfaz.showTextoGUI("Promedio de mensajes devueltos: " + this.round(estadisticas.getPromedioMensajeDevuelto()));
+            interfaz.showTextoGUI("Porcentaje de tiempo en transmisión: " + this.round(estadisticas.getTiempoEnTransmision()) + " %");
+            interfaz.showTextoGUI("Tiempo promedio en el sistema: " + this.round(estadisticas.getTiempo_W()) + " segundos");
+            interfaz.showTextoGUI("Tiempo promedio en cola: " + this.round(estadisticas.getTiempo_WQ()) + " segundos");
+            interfaz.showTextoGUI("Porcentaje de tiempo usado en procesamiento: " + this.round(estadisticas.getPorcentajeTiempo_WS()) + " %");
             colaEstadisticas.add(estadisticas);
         }
-        /**
+        /*
          * Estadísticas globales de las n simulaciones
          */
         double porcetanjeP1_C1 = 0;
@@ -347,10 +398,23 @@ public class Simulacion {
         tiempoTransmision = tiempoTransmision / numSimulaciones;
         tiempo_WS = tiempo_WS / numSimulaciones;
 
-        /**
-         * Estadísticas: Intervalo de confianza
-         */
+        interfaz.showTextoGUI("\n - Estadísticas globales para las " + numSimulaciones +  " simulaciones");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 1: " + this.round(porcetanjeP1_C1) + " %");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 2: " + this.round(porcetanjeP1_C2) + " %");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P2 de Computadora 2: " + this.round(porcetanjeP2_C2) + " %");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 3: " + this.round(porcetanjeP1_C3) + " %");
+        interfaz.showTextoGUI("Porcentaje de tiempo en mensajes rechazados: " + this.round(porcentajeTiempoRechazo) + " %");
+        interfaz.showTextoGUI("Porcentaje de mensajes rechazados: " + this.round(porcentajeMensajesRechazados) + " %");
+        interfaz.showTextoGUI("Promedio de mensajes devueltos: " + this.round(promedioMensajeDevuelto));
+        interfaz.showTextoGUI("Porcentaje de tiempo en transmisión: " + this.round(tiempoTransmision) + " %");
+        interfaz.showTextoGUI("Tiempo promedio en el sistema: " + this.round(tiempo_W) + " segundos");
+        interfaz.showTextoGUI("Tiempo promedio en cola: " + this.round(tiempo_WQ) + " segundos");
+        interfaz.showTextoGUI("Porcentaje de tiempo usado en procesamiento: " + this.round(tiempo_WS) + " %");
 
+        /*
+         * Estadísticas: Intervalo de confianza
+         * Aquí calculamos los intervalos de confianza para cada una de las estadísticas
+         */
         double intervalo_porcetanjeP1_C1 = 0;
         double intervalo_porcetanjeP1_C2 = 0;
         double intervalo_porcetanjeP2_C2 = 0;
@@ -378,8 +442,11 @@ public class Simulacion {
             intervalo_tiempoTransmision += estadisticas.getTiempoEnTransmision() - tiempoTransmision;
             intervalo_tiempo_WS += estadisticas.getPorcentajeTiempo_WS() - tiempo_WS;
         }
+        interfaz.showTextoGUI("\n - Intervalos de confianza para las estadísticas globales");
+
         intervalo_porcetanjeP1_C1 = Math.pow(intervalo_porcetanjeP1_C1, 2)/numSimulaciones-1;
         intervalo_porcetanjeP1_C1 = 1.96 * Math.pow(intervalo_porcetanjeP1_C1/numSimulaciones, 1/2);
+
 
         intervalo_porcetanjeP1_C2 = Math.pow(intervalo_porcetanjeP1_C2, 2)/numSimulaciones-1;
         intervalo_porcetanjeP1_C2 = 1.96 * Math.pow(intervalo_porcetanjeP1_C2/numSimulaciones, 1/2);
@@ -411,11 +478,23 @@ public class Simulacion {
         intervalo_tiempo_WS = Math.pow(intervalo_tiempo_WS, 2)/numSimulaciones-1;
         intervalo_tiempo_WS = 1.96 * Math.pow(intervalo_tiempo_WS/numSimulaciones, 1/2);
 
+        interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 1: [" + this.round(porcetanjeP1_C1 - intervalo_porcetanjeP1_C1) + " , " + this.round(porcetanjeP1_C1 + intervalo_porcetanjeP1_C1) + "]");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 2: [" + this.round(porcetanjeP1_C2 - intervalo_porcetanjeP1_C2) + " , " + this.round(porcetanjeP1_C2 + intervalo_porcetanjeP1_C2) + "]");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P2 de Computadora 2: [" + this.round(porcetanjeP2_C2 - intervalo_porcetanjeP2_C2) + " , " + this.round(porcetanjeP2_C2 + intervalo_porcetanjeP2_C2) + "]");
+        interfaz.showTextoGUI("Porcentaje de tiempo en P1 de Computadora 3: [" + this.round(porcetanjeP1_C3 - intervalo_porcetanjeP1_C3) + " , " + this.round(porcetanjeP1_C3 + intervalo_porcetanjeP1_C3) + "]");
+        interfaz.showTextoGUI("Porcentaje de tiempo en mensajes rechazados: [" + this.round(porcentajeTiempoRechazo - intervalo_porcentajeTiempoRechazo) + " , " + this.round(porcentajeTiempoRechazo + intervalo_porcentajeTiempoRechazo) + "]");
+        interfaz.showTextoGUI("Porcentaje de mensajes rechazados: [" + this.round(intervalo_porcentajeMensajesRechazados - intervalo_porcentajeMensajesRechazados) + " , " + this.round(intervalo_porcentajeMensajesRechazados + intervalo_porcentajeMensajesRechazados) + "]");
+        interfaz.showTextoGUI("Promedio de mensajes devueltos: [" + this.round(promedioMensajeDevuelto - intervalo_promedioMensajeDevuelto) + " , " + this.round(promedioMensajeDevuelto + intervalo_promedioMensajeDevuelto) + "]");
+        interfaz.showTextoGUI("Porcentaje de tiempo en transmisión: [" + this.round(tiempoTransmision - intervalo_tiempoTransmision) + " , " + this.round(tiempoTransmision + intervalo_tiempoTransmision) + "]");
+        interfaz.showTextoGUI("Tiempo promedio en el sistema: [" + this.round(tiempo_W - intervalo_tiempo_W) + " , " + this.round(tiempo_W + intervalo_tiempo_W) + "]");
+        interfaz.showTextoGUI("Tiempo promedio en cola: [" + this.round(tiempo_WQ - intervalo_tiempo_WQ) + " , " + this.round(tiempo_WQ + intervalo_tiempo_WQ) + "]");
+        interfaz.showTextoGUI("Porcentaje de tiempo usado en procesamiento: [" + this.round(tiempo_WS - intervalo_tiempo_WS) + " , " + this.round(tiempo_WS + intervalo_tiempo_WS) + "]");
+
     }
 
     public double round(double number){
-        number = Math.round(number*1000);
-        return number/1000;
+        number = Math.round(number*10000);
+        return number/10000;
     }
 
     public void setNumSimulaciones(int numSimulaciones) {
@@ -429,6 +508,41 @@ public class Simulacion {
     public void setClock(int clock) {
         this.clock = clock;
     }
+
+    public void setModoLento(boolean modoLento) {
+        this.modoLento = modoLento;
+    }
+
+    public void setSegundosModoLento(int segundosModoLento) {
+        this.segundosModoLento = segundosModoLento;
+    }
+
+    public static void main(String args[]) {
+        // Sets the GUI with a Nimbus look
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(Interfaz.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(Interfaz.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(Interfaz.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(Interfaz.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        // Creates the GUI form and displays it
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new Interfaz().setVisible(true);
+            }
+        });
+    }
+
 
     /**
      * Clase anidada ComparadorEvento.
