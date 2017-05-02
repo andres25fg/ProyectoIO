@@ -28,6 +28,8 @@ public class Simulacion {
 
     private int procesadoresLibres_Computadora1; // Cantidad de procesadores libres de la computadora 1
     private int procesadoresLibres_Computadora2; // Cantidad de procesadores libres de la computadora 2
+    private boolean P1_C2;
+    private boolean P2_C2;
     private int procesadoresLibres_Computadora3; // Cantidad de procesadores libres de la computadora 3
 
     /**
@@ -102,15 +104,19 @@ public class Simulacion {
      */
     public void correrSimulacion() {
         // Ciclo que ejecuta el número total de las simulaciones
-        for(int sim = 0; sim < numSimulaciones; sim ++) {
-            interfaz.showTextoGUI("Simulación número: " + (sim + 1));
-            interfaz.showNumeroSimulacion(sim + 1);
+        for(int sim = 1; sim <= numSimulaciones; sim++) {
+            interfaz.showTextoGUI("\nSimulación número: " + sim);
+            interfaz.showNumeroSimulacion(sim);
 
             numeroMensajesFinalizados = 0;
             numeroMensajesRechazados = 0;
             cantidadMensajes = 0;
             cantidadVecesDevuelto = 0;
             clock = 0;
+
+            P1_C2 = true; P2_C2 = true; // Ponemos los procesadores libres
+            procesadoresLibres_Computadora1 = 1;
+            procesadoresLibres_Computadora3 = 1;
 
             // Vaciamos las colas
             colaEventos.clear(); computadora1.clear(); computadora2.clear(); computadora3.clear();
@@ -157,15 +163,15 @@ public class Simulacion {
                 switch (eventoActual.getTipoEvento()){
                     case 0: // Evento: Llegada a Computadora 2
                         tiempoServicio = 0;
-                        if(procesadoresLibres_Computadora2 != 0) { // revisamos si hay procesadores libres
-                            if(procesadoresLibres_Computadora2 == 2) {
-                                procesadoresLibres_Computadora2--; // ocupamos el procesador 2 de C2
+                        if(P1_C2 == true || P2_C2 == true) { // revisamos si hay procesadores libres
+                            if(P2_C2 == true) {
+                                P2_C2 = false; // ocupamos el procesador 2 de C2
                                 tipoEvento = 3; // Tipo de evento: C2 Libera P2
                                 tiempoServicio = generadorRandom.uniforme(12,25); // Generamos el tiempo de servicio
                                 eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio); // Sumamos el total de tiempo de servicio del mensaje
                                 estadisticas.sumarTiempoEnP2_C2(tiempoServicio); // Sumamos al total de tiempo de servicio de las estadísticas
-                            } else if (procesadoresLibres_Computadora2 == 1){
-                                procesadoresLibres_Computadora2--; // ocupamos el procesador 1 de C2
+                            } else if (P1_C2 == true){
+                                P1_C2 = false; // ocupamos el procesador 1 de C2
                                 tipoEvento = 2; // Tipo de evento: C2 Libera P1
                                 tiempoServicio = generadorRandom.uniforme(12,25); // Generamos el tiempo de servicio
                                 eventoActual.getMensaje().sumarTiempoProcesamiento(tiempoServicio); // Sumamos el total de tiempo de servicio del mensaje
@@ -209,7 +215,7 @@ public class Simulacion {
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
-                            procesadoresLibres_Computadora2++;
+                            P1_C2 = true; // Liberamos el procesador
                         }
 
                         proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 5);
@@ -228,7 +234,7 @@ public class Simulacion {
                             proximoEvento = new Evento(mensaje, clock + tiempoServicio, tipoEvento);
                             colaEventos.add(proximoEvento);
                         } else {
-                            procesadoresLibres_Computadora2++;
+                            P2_C2 = true; // Liberamos el procesador
                         }
 
                         proximoEvento = new Evento(eventoActual.getMensaje(), clock + 20, 5);
@@ -386,6 +392,7 @@ public class Simulacion {
             interfaz.showTextoGUI("Porcentaje de tiempo usado en procesamiento: " + this.round(estadisticas.getPorcentajeTiempo_WS()) + " %");
             colaEstadisticas.add(estadisticas);
         }
+        System.out.println(cantidadVecesDevuelto);
         /*
          * Estadísticas globales de las n simulaciones
          */

@@ -39,12 +39,12 @@ public class Estadisticas {
         porcetanjeP1_C3 = this.getTiempoEnP1_C3() / clock * 100;
 
         porcentajeTiempoRechazo = this.getTiempoProcesamientoRechazados() / clock * 100;
-        porcentajeMensajesRechazados = numeroMensajesRechazados / cantidadMensajes * 100;
-        tiempo_W = this.getTiempoEnSistema() / cantidadMensajes;
-        promedioMensajeDevuelto = cantidadVecesDevuelto / cantidadMensajes;
+        porcentajeMensajesRechazados = (double)numeroMensajesRechazados / (double)cantidadMensajes;
+        tiempo_W = this.getTiempoEnSistema() / (double)cantidadMensajes;
+        promedioMensajeDevuelto = (double)cantidadVecesDevuelto / (double)cantidadMensajes;
 
-        tiempo_WQ = this.getTiempoEnCola() / cantidadMensajes;
-        tiempoTransmision = this.getTiempoEnTransmision() / cantidadMensajes;
+        tiempo_WQ = this.getTiempoEnCola() / (double)cantidadMensajes;
+        tiempoTransmision = this.getTiempoEnTransmision() / (double)cantidadMensajes;
         porcentajeTiempo_WS = this.getTiempoTotalProcesamiento() / clock * 100;
     }
 

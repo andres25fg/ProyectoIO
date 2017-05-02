@@ -724,19 +724,13 @@ public class Interfaz extends javax.swing.JFrame {
                 this.eventoActual.setText("Computadora 3 libera P1");
                 break;
             case 5:
-                this.eventoActual.setText("");
+                this.eventoActual.setText("C1 recibe mensaje de C2");
                 break;
             case 6:
-                this.eventoActual.setText("");
+                this.eventoActual.setText("C1 recibe mensaje de C3");
                 break;
             case 7:
-                this.eventoActual.setText("");
-                break;
-            case 8:
-                this.eventoActual.setText("");
-                break;
-            case 9:
-                this.eventoActual.setText("");
+                this.eventoActual.setText("C1 libera P1");
                 break;
         }
     }
@@ -759,7 +753,6 @@ public class Interfaz extends javax.swing.JFrame {
 
         this.clock.setText("0");
         this.eventoActual.setText("");
-        this.numeroSim.setText("0");
     }
 
     public void activarBotonRegreso() {
@@ -796,7 +789,7 @@ public class Interfaz extends javax.swing.JFrame {
         this.starSimButton.setEnabled(true);
         this.simPanel.setVisible(true);
         this.numeroSimulaciones_simPanel.setText(Integer.toString(numSims));
-        this.segundosSimulacion_simPanel.setText(Integer.toString(tiempoSimulacion));
+        this.segundosSimulacion_simPanel.setText(Integer.toString(tiempoSimulacion * 60));
         this.segundosModoLento_simPanel.setText(Integer.toString(segundosModoLento));
         if(banderaModoLento) {
             this.segundosModoLento_simPanel.setVisible(true);
