@@ -10,7 +10,6 @@ public class Mensaje {
     private double tiempoInicioCola; // hora en que se empieza a esperar en cola
     private double tiempoTansmision; // Tiempo que tarda siendo trasmitido un mensaje
     private double tiempoProcesamiento; // WS
-    private int cantidadVecesDevuelto; // Cantidad de veces que fue devuelto desde la C1
     private int computadoraInicio; // Computadora a la cual llega el mensaje inicialmente en el sistema
 
     public Mensaje() {
@@ -55,18 +54,6 @@ public class Mensaje {
 
     public double getTiempoProcesamiento() {
         return tiempoProcesamiento;
-    }
-
-    public void setTiempoProcesamiento(double tiempoProcesamiento) {
-        this.tiempoProcesamiento = tiempoProcesamiento;
-    }
-
-    public int getCantidadVecesDevuelto() {
-        return cantidadVecesDevuelto;
-    }
-
-    public void setCantidadVecesDevuelto(int cantidadVecesDevuelto) {
-        this.cantidadVecesDevuelto = cantidadVecesDevuelto;
     }
 
     public int getComputadoraInicio() {

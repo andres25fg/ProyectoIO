@@ -666,22 +666,23 @@ public class Interfaz extends javax.swing.JFrame {
         simText.setCaretPosition(simText.getDocument().getLength());
     }
 
-    public void showInformacionProcesadores(int procesadoresComputadora1, int procesadoresComputadora2, int procesadoresComputadora3) {
+    public void showInformacionProcesadores(int procesadoresComputadora1, boolean P1_C2, boolean P2_C2, int procesadoresComputadora3) {
         if(procesadoresComputadora1 == 1) {
             this.comp1_p1.setText("Libre");
         } else {
             this.comp1_p1.setText("Ocupado");
         }
 
-        if(procesadoresComputadora2 == 2) {
-            this.comp2_p2.setText("Libre");
+        if(P1_C2 == true) {
             this.comp2_p1.setText("Libre");
-        } else if (procesadoresComputadora2 == 1){
-            this.comp2_p2.setText("Ocupado");
-            this.comp2_p1.setText("Libre");
-        } else if (procesadoresComputadora2 == 0){
-            this.comp2_p2.setText("Ocupado");
+        } else {
             this.comp2_p1.setText("Ocupado");
+        }
+
+        if(P2_C2 == true) {
+            this.comp2_p2.setText("Libre");
+        } else {
+            this.comp2_p2.setText("Ocupado");
         }
 
         if(procesadoresComputadora3 == 1) {
@@ -767,10 +768,6 @@ public class Interfaz extends javax.swing.JFrame {
             textInt = 0;
         }
         return textInt;
-    }
-
-    public void setBanderaModoLento(boolean banderaModoLento) {
-        this.banderaModoLento = banderaModoLento;
     }
 
     public void setSegundosModoLento(int segundos) {

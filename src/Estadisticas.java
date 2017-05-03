@@ -5,18 +5,18 @@
  * Andrés González Caldas
  */
 public class Estadisticas {
-    private double tiempoEnP1_C1; // P1 de C1
-    private double tiempoEnP1_C2; // P1 de C2
-    private double tiempoEnP2_C2; // P2 de C2
-    private double tiempoEnP1_C3; // P1 de C3
+    private double tiempoEnP1_C1; // tiempo de procesamiento en P1 de C1
+    private double tiempoEnP1_C2; // tiempo de procesamiento en P1 de C2
+    private double tiempoEnP2_C2; // tiempo de procesamiento en P2 de C2
+    private double tiempoEnP1_C3; // tiempo de procesamiento en P1 de C3
 
-    private double tiempoProcesamientoRechazados;
-    private double tiempoTotalProcesamiento;
-    private double tiempoEnCola;
-    private double tiempoEnSistema;
-    private double tiempoEnTransmision;
+    private double tiempoProcesamientoRechazados; // tiempo utilizado en procesamiento de mensajes rechazados
+    private double tiempoTotalProcesamiento; // tiempo total de procesamiento de todos los procesadores
+    private double tiempoEnCola; // tiempo total en cola
+    private double tiempoEnSistema; // tiempo total en el sistema
+    private double tiempoEnTransmision; // tiempo total usado en transmisión de mensajes
 
-    // Estadísticas globales por simulación
+    // Estadísticas de la simulación
     private double porcetanjeP1_C1; // Porcentaje de tiempo en P1 de la Computadora 1
     private double porcetanjeP1_C2; // Porcentaje de tiempo en P1 de la Computadora 2
     private double porcetanjeP2_C2; // Porcentaje de tiempo en P2 de la Computadora 2
@@ -32,6 +32,13 @@ public class Estadisticas {
     public Estadisticas() {
     }
 
+    /**
+     * Método que genera las estadísticas la simulación al final de la corrida
+     * @param clock
+     * @param numeroMensajesRechazados
+     * @param cantidadMensajes
+     * @param cantidadVecesDevuelto
+     */
     public void hacerEstadisticas(double clock, int numeroMensajesRechazados, int cantidadMensajes, int cantidadVecesDevuelto) {
         porcetanjeP1_C1 = this.getTiempoEnP1_C1() / clock * 100;
         porcetanjeP1_C2 = this.getTiempoEnP1_C2() / clock * 100;

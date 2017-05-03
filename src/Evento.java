@@ -5,7 +5,7 @@
  * Andrés González Caldas
  */
 public class Evento {
-    private int tipoEvento; // 0-9
+    private int tipoEvento; // tipo de evento. Esto se maneja en el switch, dependiendo del número es un caso diferente
     private Mensaje mensaje;
     private double tiempoEvento; // Tiempo de inicio del evento
 
